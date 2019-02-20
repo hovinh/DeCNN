@@ -1,5 +1,7 @@
 # Deconvolutional Neural Network
 
+> **Note**: if you are interested in using DeconvNet effectively, you can dive immediately into [experiments.ipynb](experiments.ipynb), implemented in Keras with Tensorflow backend. Even though it departs from the original model, it visually and theoretically works better, according to this [paper](https://arxiv.org/pdf/1412.6806.pdf%20(http://arxiv.org/pdf/1412.6806.pdf)). This should be applicable for most networks, though it is tricky to apply on network has layers connecting to more than one other layer, e.g. Inception V3. If that's the case, check out this [example](https://github.com/hovinh/LayeredExplanationsFramework/blob/master/code/DogFish_VGG16.ipynb).
+
 As part of an on-going project, I need to find a way to map value of an arbitrary layer back to its previous layer. Initially, it is meant to apply on a general architecture, **Fully Connected Neural Network** (NN). However, reconducting a well-known experiment seems to be a more reasonble approach to me. Therefore, I choose **Convolutional Neural Network** (CNN), one of two popular variants of NN, to test on. To be precise, I would call it **Deconvolutional Neural Network** (DeCNN) for this is a CNN integrated with an additional reversed process.
 
 
@@ -92,12 +94,11 @@ one last layer
 for the sake of simple, see orinigal image in 
 ### Convolution - Deconvolution
 
-### Deconvolutional Neural Network
-Zoom in and filter to get the edge
-### Neural Network
+Deconvolutional layer is in fact pseudo-deconvolutional: it is simply transposing convolutional layers in feed-forward phase vertically and horizontally. 
 
-## Question
-- Deconvolution operation: If convolution is just a different presentation of matrix multiplication, why don't we use inverse matrix instead of transpose one to map back?
+### Deconvolutional Neural Network
+
+Apart from pooling and deconvolutional layer, any layer that has ReLU activation applied in the feed-forward phase also has ReLU activation in the backward phase.
 
 ## Feedback
 Please feel free to contact me via my email: hovinh39@gmail.com
