@@ -3,6 +3,17 @@ from keras import backend as K
 
 class Backpropagation():
     def __init__ (self, model, layer_name, input_data, layer_idx = None, masking=None):
+		"""
+		@params:
+			- model: a Keras Model.
+			- layer_name: name of layer to be backpropagated, can be determined by 
+			model.layers[layer_idx].name. 
+			- input_data: a input data to be inspected, must be in proper format 
+			to be able to be fed into model.
+			- layer_idx: equivalent to layer_name.
+			- masking: determine which units in the chosen layer to be backpropagated,
+			a numpy array with the same shape with chosen layer.
+		"""
         self.model = model
         self.layer_name = layer_name
         self.layer = model.get_layer(layer_name)
@@ -20,6 +31,11 @@ class Backpropagation():
         self.masking = masking
 
     def compute(self):
+		"""
+		@returns:
+			- output_data: obtained heatmap.
+			- func: a reuseable function to compute backpropagation in the same setting.
+		"""
         loss = K.mean(self.layer.output * self.masking)
         gradients = K.gradients(loss, self.model.input)[0]
         func = K.function([self.model.input], [gradients])
@@ -28,6 +44,9 @@ class Backpropagation():
         return (output_data, func)
     
     def filter_gradient(self, x):
+		"""
+		The gradients to be visualize has non-negative value.
+		"""
         x_abs = np.abs(x)
         x_max = np.amax(x_abs, axis=-1)
         return x_max
@@ -35,10 +54,21 @@ class Backpropagation():
 
 class SmoothGrad(Backpropagation):
     def __init__(self, model, layer_name, input_data, layer_idx = None, masking=None):
+		"""
+		For parameters, please refer to Backpropagation()
+		"""
         super(SmoothGrad, self).__init__(model, layer_name, input_data, layer_idx, masking)
 
     def compute(self, n_samples=50, batch_size=10):
-
+		"""
+		@params:
+			- n_samples: number of random sampled to be injected noise and taken average.
+			- batch_size: must be <= n_samples. If n_samples is too big, there may be there
+			are not enough memories to compute, hence we have to proceed them iteratively 
+			batch-by-batch.
+		@returns:
+			- smooth_gradients: obtained heatmap.
+		"""
         _, func = super().compute()
         
         shape = [n_samples] + list(self.model.input.shape[1:])
@@ -64,9 +94,16 @@ class SmoothGrad(Backpropagation):
     
 class GuidedBackprop(Backpropagation):
     def __init__(self, model, layer_name, input_data, layer_idx = None, masking=None):
+		"""
+		For parameters, please refer to Backpropagation()
+		"""
         super(GuidedBackprop, self).__init__(model, layer_name, input_data, layer_idx, masking)
      
     def compute(self):
+		"""
+		@returns:
+			- gradients_input: obtained heatmap.
+		"""
         forward_values = [self.input_data] + self.feed_forward()
         forward_values_dict = {self.model.layers[i].name:forward_values[i] for i in range(self.layer_idx+1)}
         gradients = self.masking
@@ -107,7 +144,11 @@ class GuidedBackprop(Backpropagation):
         return self.forward_values 
     
     def normalize_gradient(self, img):
-        
+        """
+		Gradients computed tend to become pretty small, especially after many layers.
+		So after each layer, we will multiply them with a constant to keep them in acceptable 
+		range (if applicable).
+		"""
         gap = img.max() - img.min()
         if (abs(gap) > 1.):
             return img
@@ -119,9 +160,16 @@ class GuidedBackprop(Backpropagation):
     
 class DeconvNet(GuidedBackprop):
     def __init__(self, model, layer_name, input_data, layer_idx = None, masking=None):
+		"""
+		For parameters, please refer to Backpropagation()
+		"""
         super(DeconvNet, self).__init__(model, layer_name, input_data, layer_idx, masking)
 
     def compute(self):
+		"""
+		@returns:
+			- gradients_input: obtained heatmap.
+		"""
         gradients = self.masking
         
         for layer_idx in range(self.layer_idx-1, -1, -1):
